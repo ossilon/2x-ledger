@@ -4,8 +4,8 @@ This project uses semantic versioning. Features raise the minor version; fixes r
 
 ## 0.1.1 (2026-10-22)
 
-Two reviews of v0.1.0 on 2026-10-22 drove this release: the author's own engine review and an independent audit by
-another AI model (GPT Astra). Every audit finding reproduced here on fresh fixtures before it entered this list.
+Two reviews of v0.1.0 on 2026-10-22 drove this release: the author's own engine review and an independent audit.
+Every audit finding reproduced here on fresh fixtures before it entered this list.
 The run appends restated rows for 2026-09-30; the old rows stay, and the new rows carry `restates`. Schema
 version 2.
 
