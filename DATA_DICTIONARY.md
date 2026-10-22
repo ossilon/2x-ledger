@@ -1,7 +1,8 @@
 # Data dictionary
 
-Three public tables. `ledger.csv` has one row per fund per month-end. `register.csv` has one row per fund.
-`results/<YYYY-MM>/windows.csv` has one row per fund per window.
+Four public tables. `ledger.csv` has one row per fund per month-end. `register.csv` has one row per fund.
+`register_leverage.csv` has one row per fund per target-leverage period. `results/<YYYY-MM>/windows.csv` has one
+row per fund per window.
 
 Conventions:
 
@@ -12,6 +13,11 @@ Conventions:
 - An empty cell means the run did not compute the value. The column `coverage` says why.
 - The engine computes every column in `code/engine/` and `code/product/run_monthly.py`. `docs/learn/` explains the
   layers L0, L1, L2, B and L3 that several columns use.
+- The reference rate accrues on calendar days / 360 (money-market basis); the expense ratio on days / 365.
+- A restated row is a new row with `restates` set, appended after the row it supersedes. Readers take the last row
+  per ticker and as-of date. Rows of an older schema have empty cells in columns added later.
+- Sampling error: slopes, intervals, the variance ratio, the Kelly leverage and the tail index are estimates. The
+  entries below give the standard error or the interval where one year of data leaves the point value noisy.
 
 ## ledger.csv
 
@@ -19,7 +25,7 @@ Conventions:
 
 | Column | Unit | Definition |
 |---|---|---|
-| `schema_version` | integer | The version of this column set. The first release is 1. |
+| `schema_version` | integer | The version of this column set. 1 for the v0.1.0 run; 2 from v0.1.1 (three columns added, rate on days / 360). |
 | `asof` | date | The last session the row covers. A month-end. |
 | `run_date_utc` | date | The UTC date of the run. |
 | `ticker` | text | The fund's ticker. |
@@ -49,9 +55,9 @@ Conventions:
 
 | Column | Unit | Definition |
 |---|---|---|
-| `cost_annual_pct` | percent a year | The all-in cost beyond fed funds on the borrowed turn: minus `residual_annual_pct`. Empty when the fund went to zero. |
+| `cost_annual_pct` | percent a year | The all-in cost beyond fed funds on the borrowed turn: minus `residual_annual_pct`. Empty when the fund went to zero. A realized measure: it includes any change in the fund's market premium between its first and last close, which the interval does not capture. |
 | `residual_annual_pct` | percent a year | The log of (L3 / L2) at `asof`, divided by the years since launch, times 100. Negative means a cost. |
-| `residual_ci_lo_pct` | percent a year | The lower end of the 95 percent block-bootstrap interval of `residual_annual_pct` (blocks of 21 days, 1000 draws). |
+| `residual_ci_lo_pct` | percent a year | The lower end of the 95 percent interval of `residual_annual_pct`. It is the mean minus t(k-1, 0.975) times the standard error of circular block-bootstrap means. Blocks of 21 sessions, 1000 draws, k whole blocks. |
 | `residual_ci_hi_pct` | percent a year | The upper end of that interval. |
 | `cost_multiple` | ratio | `cost_annual_pct` divided by `expense_ratio_pct`. |
 
@@ -67,8 +73,9 @@ Conventions:
 
 | Column | Unit | Definition |
 |---|---|---|
-| `vr_q10_under` | ratio | The Lo-MacKinlay variance ratio of the stock's log returns at 10 days. Above 1 means trend, below 1 means reversal. |
-| `ar1_under` | ratio | The lag-one autocorrelation of the stock's daily returns. |
+| `vr_q10_under` | ratio | The Lo-MacKinlay variance ratio of the stock's log returns at 10 days. Above 1 means trend, below 1 means reversal. On 252 sessions its sampling sd is about 0.21 under a random walk. |
+| `vr_q10_z_under` | ratio | The Lo-MacKinlay heteroskedasticity-robust z of the variance ratio against 1. A value beyond 1.96 differs from 1 at the 5 percent level. |
+| `ar1_under` | ratio | The lag-one autocorrelation of the stock's daily returns. Its sampling sd under independence is 1 / sqrt(n), about 0.06 on 252 sessions. |
 
 ### Question 5: the daily reset (since launch)
 
@@ -81,8 +88,8 @@ Conventions:
 
 | Column | Unit | Definition |
 |---|---|---|
-| `hurdle_return_pct` | percent a year, log | The stock's yearly log growth at which a 2x fund grows as fast as the stock. It equals variance plus mean rate plus cost, all over the fund's life. |
-| `kelly_L_under` | ratio | The growth-optimal leverage on the stock: mean daily excess return over fed funds divided by the variance of daily returns (trailing). |
+| `hurdle_return_pct` | percent a year, log | The stock's yearly log growth at which a 2x fund grows as fast as the stock. It equals the exact compounding penalty of a 2x reset on the stock's daily returns, plus the mean rate, plus the fund's cost. All three are over the fund's life. A statement about a 2x fund: a fund that ran below 2x for part of its life can disagree with its realized outcome. |
+| `kelly_L_under` | ratio | The growth-optimal leverage on the stock. It is the leverage that maximizes the mean log growth of a daily-reset position financed at fed funds, on the trailing returns. On one year of a single stock the point value is noise; read the interval. |
 | `kelly_L_ci_lo` | ratio | The lower end of its 95 percent block-bootstrap interval. |
 | `kelly_L_ci_hi` | ratio | The upper end of that interval. |
 
@@ -92,8 +99,9 @@ Conventions:
 |---|---|---|
 | `worst_day_under_pct` | percent | The stock's worst daily return since the fund's launch. |
 | `worst_day_under_hist_pct` | percent | The stock's worst daily return over its captured history (its listing or the 5000-bar window). |
-| `tail_index_under` | ratio | The Hill estimate of the stock's left-tail index on its captured history (the largest 5 percent of losses). Lower means fatter. |
-| `kurtosis_under` | ratio | The excess kurtosis of the stock's daily returns (trailing). |
+| `tail_index_under` | ratio | The Hill estimate of the stock's left-tail index on its captured history (the largest 5 percent of losses, at least 10). Lower means fatter. Biased low by about 0.2 on Student-t data. |
+| `tail_index_se_under` | ratio | The standard error of the Hill estimate, alpha / sqrt(k). On the pilot it runs from 0.24 to 0.66. |
+| `kurtosis_under` | ratio | The excess kurtosis of the stock's daily returns (trailing). On 252 sessions of a heavy-tailed stock a few days set it; a descriptive number, not a stable estimate. |
 | `reverse_splits` | count | Reverse splits of the fund to `asof`, from the register. |
 
 ### Question 8: a year of holding (since launch)
@@ -137,15 +145,16 @@ Conventions:
 | `tr_incep_bh_pct` | percent | B's return since launch. |
 | `cagr_fund_pct` | percent a year | The fund's compound annual growth, on calendar years of 365.25 days. |
 | `cagr_under_pct` | percent a year | The stock's compound annual growth. |
+| `rel_growth_log_pct` | percent a year, log | The fund's log growth minus the stock's, per year since launch: 100 ln(L3 / L0) / years. Positive means the fund beat its stock. |
 | `financing_pp` | points | L2 minus L1 since launch. |
 | `residual_pp` | points | L3 minus L2 since launch. |
 | `levered_bh_pp` | points | L3 minus B since launch. |
-| `financing_annual_pct` | percent a year | The fed funds charge on the borrowed turn, as a yearly log rate. |
+| `financing_annual_pct` | percent a year, log | The financing layer as a yearly log rate: 100 ln(L1 / L2) / years. On the same footing as the residual and the penalty, so stock growth plus penalty minus financing plus residual equals fund growth. |
 | `max_dd_under_pct` | percent | The stock's deepest fall from a peak since the fund's launch. |
 | `worst_day_fund_pct` | percent | The fund's worst daily return. |
 | `best_day_fund_pct` | percent | The fund's best daily return. |
-| `oracle_best_pct` | percent | The largest gain from any earlier close to a later close. The bound of perfect timing. |
-| `oracle_worst_pct` | percent | The largest loss from any earlier close to a later close. Equal to `max_dd_fund_pct`. |
+| `oracle_best_pct` | percent | The largest gain from any close to a later or the same close. The bound of perfect timing; 0 when no gain exists. |
+| `oracle_worst_pct` | percent | The largest loss from any close to a later or the same close. Equal to `max_dd_fund_pct`; 0 when no loss exists. |
 | `beta_5d_ls` | ratio | The Leung-Santoli (2016) small-move leverage estimator on 5-day windows. Jumps bias it; shown next to `beta_5d`. |
 | `b_wiped` | true or false | True when B reached zero. |
 | `beta_spx_under` | ratio | The OLS slope of the stock's daily return on the S&P 500's daily return (trailing). |
@@ -173,6 +182,17 @@ Conventions:
 | `distributions_url` | The issuer page with the distribution history. |
 | `inception_source` | The source of the inception date. |
 | `captured_date` | The date on which the author read the register row from its sources. |
+
+## register_leverage.csv
+
+| Column | Definition |
+|---|---|
+| `symbol` | The fund in EXCHANGE:TICKER form. |
+| `ticker` | The fund's ticker. |
+| `target_leverage` | The target leverage in this period. |
+| `effective_from` | The first day of the period. |
+| `effective_to` | The first day of the next period, or empty for the current period. |
+| `source` | The document that states the target. Where the issuer wrote "on or about", the day is approximate (`ASSUMPTIONS.md`, section 3). |
 
 ## results/<YYYY-MM>/windows.csv
 

@@ -11,8 +11,9 @@ Numbers only. Inputs are daily simple returns (Series or arrays) unless stated.
   Avellaneda-Zhang / Cheng-Madhavan approximation of the same quantity (for L = 2: minus the realized variance).
 - variance_ratio: Lo and MacKinlay (1988) VR(q) with the small-sample corrections; 1 for a random walk, above 1
   for trending returns, below 1 for reversals. Bessembinder (2026) shows this statistic sets the sign of the
-  expected rebalancing cost.
-- ar1: lag-one autocorrelation of daily returns (Hsieh, Chang and Chen 2025 use its sign the same way).
+  expected rebalancing cost. variance_ratio_z: their heteroskedasticity-consistent z against 1.
+- ar1: lag-one autocorrelation of daily returns (Hsieh, Chang and Chen 2025 use its sign the same way); its
+  sampling sd under independence is 1 / sqrt(n).
 """
 import numpy as np
 import pandas as pd
@@ -42,26 +43,52 @@ def garman_klass_vol(o, h, l, c, annualize=TRADING_DAYS):
     return float(100 * np.sqrt(max(var, 0.0) * annualize))
 
 
-def exact_penalty(r, L):
-    """(total penalty in log units, annualized penalty in percent). NaN if any day wipes the L-fund out."""
+def exact_penalty(r, L, years=None):
+    """(total penalty in log units, annualized penalty in percent). NaN if any day wipes the L-fund out.
+
+    `years`: calendar years spanned by the returns, for the same annualization as the residual; without it the
+    function counts sessions / 252 (v0.1.0 behavior; the two differ by about 0.5 percent).
+    """
     v = _arr(r)
     Ls = float(L) if np.isscalar(L) else _arr(L)
     if np.any(1 + Ls * v <= 0):
         return float("nan"), float("nan")
     per_day = np.log1p(Ls * v) - Ls * np.log1p(v)
     total = float(per_day.sum())
-    years = len(v) / TRADING_DAYS
-    return total, float(100 * total / years) if years > 0 else float("nan")
+    yrs = len(v) / TRADING_DAYS if years is None else float(years)
+    return total, float(100 * total / yrs) if yrs > 0 else float("nan")
 
 
-def sigma2_law(r, L):
+def sigma2_law(r, L, years=None):
     """(total in log units, annualized percent) of (L - L^2)/2 * realized variance (sum of squared demeaned returns)."""
     v = _arr(r)
     Lf = float(L) if np.isscalar(L) else float(np.mean(_arr(L)))
     rv = float(((v - v.mean()) ** 2).sum())
     total = (Lf - Lf ** 2) / 2.0 * rv
-    years = len(v) / TRADING_DAYS
-    return total, float(100 * total / years) if years > 0 else float("nan")
+    yrs = len(v) / TRADING_DAYS if years is None else float(years)
+    return total, float(100 * total / yrs) if yrs > 0 else float("nan")
+
+
+def variance_ratio_z(r, q):
+    """Lo-MacKinlay (1988) heteroskedasticity-consistent z statistic of VR(q) against 1 (their equation 20).
+
+    theta(q) = sum_{j=1}^{q-1} [2 (q - j) / q]^2 delta(j),  delta(j) = sum (x_t - mu)^2 (x_{t-j} - mu)^2 / [sum (x_t - mu)^2]^2,
+    z = (VR(q) - 1) / sqrt(theta). On 252 sessions VR(10) has a sampling sd of about 0.21 under a random walk, so
+    a value of 0.8 or 1.2 is noise; the ledger publishes z next to VR (engine review 2026-10-22).
+    """
+    vr = variance_ratio(r, q)
+    if not np.isfinite(vr):
+        return float("nan")
+    x = np.log1p(_arr(r))
+    e = x - x.mean()
+    den = float((e ** 2).sum()) ** 2
+    if den == 0:
+        return float("nan")
+    theta = 0.0
+    for j in range(1, q):
+        delta = float((e[j:] ** 2 * e[:-j] ** 2).sum()) / den
+        theta += (2.0 * (q - j) / q) ** 2 * delta
+    return float((vr - 1.0) / np.sqrt(theta)) if theta > 0 else float("nan")
 
 
 def variance_ratio(r, q):

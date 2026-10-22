@@ -33,6 +33,7 @@ Sources: Bessembinder (2026) "Rebalancing, Frictional Costs, and Returns to Leve
 """
 import numpy as np
 import pandas as pd
+from scipy import stats as sps
 
 TRADING_DAYS = 252
 
@@ -174,9 +175,13 @@ def daily_log_residual(lay):
 
 
 def block_bootstrap_mean(x, block=21, reps=1000, seed=7, scale=1.0):
-    """Mean of x and a 95% block-bootstrap interval (circular blocks), all times `scale`.
+    """Mean of x and a 95% interval from a circular block bootstrap, all times `scale`.
 
-    Returns (mean, lo, hi). With fewer than 2 blocks the interval is (nan, nan).
+    The interval is mean +/- t(k - 1, 0.975) x bootstrap standard error, with k = n // block the number of whole
+    blocks. A percentile interval on so few blocks ignores the uncertainty of the variance estimate itself: in
+    simulation with GARCH-t noise it covered 0.85 (126 sessions), 0.905 (252) and 0.938 (504) instead of 0.95;
+    the t interval covers 0.955 to 0.968 (engine review 2026-10-22). Returns (mean, lo, hi); with fewer than 2
+    blocks the interval is (nan, nan).
     """
     v = np.asarray(x, dtype=float)
     v = v[np.isfinite(v)]
@@ -194,8 +199,9 @@ def block_bootstrap_mean(x, block=21, reps=1000, seed=7, scale=1.0):
     for k in range(reps):
         pos = (starts[k][:, None] + offsets[None, :]).ravel()[:n] % n
         means[k] = v[pos].mean()
-    lo, hi = np.percentile(means, [2.5, 97.5]) * scale
-    return m, float(lo), float(hi)
+    se = float(means.std(ddof=1)) * scale
+    tq = float(sps.t.ppf(0.975, max(n // block - 1, 1)))
+    return m, m - tq * se, m + tq * se
 
 
 def years_in(index):
@@ -223,7 +229,14 @@ def residual_annual(lay, block=21, reps=1000, seed=7):
 
 
 def financing_annual_pct(lay):
-    """Fed funds on the borrowed turns over the frame, annualized (percent of NAV a year, positive)."""
-    cost = ((lay["L"] - 1.0) * lay["rate_accrual"]).iloc[1:]
+    """The financing layer as a yearly log rate: 100 x ln(L1_T / L2_T) / years (positive = cost).
+
+    On the same footing as the residual (100 x ln(L3 / L2) / years) and the exact penalty, so the four log rates
+    add up: stock growth + penalty - financing + residual = fund growth (v0.1.0 summed the arithmetic daily
+    charges instead; audit 2026-10-22, M04). NaN if L1 or L2 was wiped out.
+    """
     years = years_in(lay.index)
-    return float(100 * cost.sum() / years) if years > 0 else float("nan")
+    l1, l2 = float(lay["L1"].iloc[-1]), float(lay["L2"].iloc[-1])
+    if years <= 0 or l1 <= 0 or l2 <= 0:
+        return float("nan")
+    return float(100 * np.log(l1 / l2) / years)

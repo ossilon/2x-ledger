@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software or its data, cite it as below."
 title: "2x Single-Stock ETF Ledger"
 type: software
-version: 0.1.0
+version: 0.1.1
 date-released: 2026-10-22
 license: MIT
 repository-code: "https://github.com/ossilon/2x-ledger"

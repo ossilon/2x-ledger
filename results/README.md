@@ -8,3 +8,6 @@ One folder per month, plus the manifests.
 | `manifests/<YYYY-MM>.json` | The run's input list: the kind, path and SHA-256 hash of every raw file the run read, and the cutoff. Also the hashes of the output files. Dates only, no clock times. |
 
 The folder holds aggregates only. No price level, no daily return series and no issuer file appears here.
+
+A restated run (`--restate`) rewrites that month's `windows.csv` and manifest. The ledger keeps both row sets, and
+the new rows carry `restates`.

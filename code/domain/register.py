@@ -123,6 +123,41 @@ def target_leverage_series(symbol, index, root=ROOT):
     return out
 
 
+def expense_ratio_series(symbol, index, root=ROOT):
+    """Total expense ratio (percent a year) on each date of `index` from the expense timeline; raises off it.
+
+    v0.1.0 used the latest ratio for the whole trailing window; 11 pilot funds changed fees inside it (engine
+    review 2026-10-22, F6). The effect on the leverage fit is below 0.001, but the timeline is the record.
+    """
+    rows = expense_timeline(root)
+    rows = rows[rows["symbol"] == symbol]
+    if rows.empty:
+        raise KeyError(f"{symbol}: no expense timeline")
+    out = pd.Series(float("nan"), index=index, name="expense_total_pct")
+    for _, r in rows.iterrows():
+        end = r["effective_to"]
+        mask = (index >= r["effective_from"]) & ((index < end) if not pd.isna(end) else True)
+        out[mask] = r["expense_total_pct"]
+    if out.isna().any():
+        first = out.index[out.isna()][0]
+        raise ValueError(f"{symbol}: no expense ratio on {first.date()} (timeline starts {rows['effective_from'].min().date()})")
+    return out
+
+
+def public_leverage(root=ROOT):
+    """The public register_leverage.csv frame: dated target-leverage periods per fund with their sources.
+
+    Facts, not prices: the forward verdicts need dated leverage events to apply protocol P1's exclusion rule
+    (audit 2026-10-22, D01)."""
+    tl = leverage_timeline(root).copy()
+    funds = load_funds(root)
+    tl["ticker"] = tl["symbol"].map(funds["ticker"])
+    for c in ("effective_from", "effective_to"):
+        tl[c] = tl[c].dt.strftime("%Y-%m-%d").fillna("")
+    cols = ["symbol", "ticker", "target_leverage", "effective_from", "effective_to"] + [c for c in ("source",) if c in tl.columns]
+    return tl[cols].sort_values(["ticker", "effective_from"]).reset_index(drop=True)
+
+
 def validate(root=ROOT):
     """All register checks; returns a list of problems (empty = clean)."""
     funds = load_funds(root)

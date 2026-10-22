@@ -1,7 +1,7 @@
 # Hypotheses on record
 
 A script (`code/forward/ledger.py`) makes this page from `forward/hypotheses.jsonl`. Do not edit it by hand.
-Chain check: **chain intact** (7 entries). Each entry carries the hash of the entry before it. The git history shows when each entry went on record.
+Chain check: **chain intact** (8 entries). Each entry carries the hash of the entry before it. The git history shows when each entry went on record.
 
 ## Protocol P1 (on record 2026-10-22)
 
@@ -14,6 +14,15 @@ Chain check: **chain intact** (7 entries). Each entry carries the hash of the en
 - Multiple tests: four tests. One failure by chance is plausible. A failure marks a lead to investigate, not proof on its own.
 - Before the freeze: the run as of 2026-09-30 (windows 2025-09-30 to 2026-09-30) shaped the bands below. It tests nothing.
 - Void events: if a fund's target leverage in the register changes between 2026-09-30 and 2027-09-30, that fund leaves H2 and H4. The verdict names it.
+
+## Protocol P2 (on record 2026-10-22)
+
+- P2 adds corrections and disclosures to P1. It changes no claim, no band and no review date. Two reviews of v0.1.0 on 2026-10-22 are its source: the author's own and an independent audit.
+- Correction to H2's note: the since-launch NVDA gap was 3.2 points (NVDX 11.10 against NVDG 7.93), not 3.4. The 12-month gap of 4.5 and the band stand.
+- Disclosure: the review window (2026-09-30 to 2027-09-30) starts 22 days before the freeze of 2026-10-22. The bands came from the run as of 2026-09-30. The October sessions did not shape them.
+- Eligibility, executable in code/forward/verdicts.py from v0.1.1: the universe is the 21 tickers in register.csv on 2026-10-22, listed in the code. A closed fund has status closed in register.csv with a close date on or before the review as-of date. A leverage change is any period start in register_leverage.csv after 2026-09-30 and on or before the review as-of date. A live, unchanged fund without its required input gives the result unresolved, and the verdict waits for the input. The evidence names every excluded fund and the reason.
+- P1 rule 6 gains the result word unresolved. It is not a verdict. The script refuses to record a verdict while any hypothesis has that result.
+- Convention change in v0.1.1: the reference rate accrues on days/360 (the money-market basis), not days/365. fedfunds_pct in windows.csv falls by about 0.05 points a year. P1 rule 3's formula does not change.
 
 ## Hypotheses
 

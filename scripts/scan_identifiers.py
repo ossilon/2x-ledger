@@ -12,9 +12,10 @@ It checks every file that git would publish (everything .gitignore does not excl
    clock-time stamps in public documents and data (public files carry dates, never the hour of the author's work;
    a cutoff at the end of a UTC day is allowed), plus British spellings (the public style rule is American English);
 3. data files that must never be published: CSV/JSON/JSONL/XLS/PDF/Parquet outside docs/ and the allowed public
-   tables (ledger.csv, register.csv, results/<month>/windows.csv, results/manifests/*.json, forward/hypotheses.jsonl,
-   reference/DFF.csv), each of which must have the shape the project's tools write; image files; text files with 5
-   or more dated numeric rows (a daily series pasted into a document).
+   tables (ledger.csv, register.csv, register_leverage.csv, results/<month>/windows.csv, results/manifests/*.json,
+   forward/hypotheses.jsonl, reference/DFF.csv), each of which must have the shape the project's tools write; image
+   files; text files with 5 or more dated numeric rows (a daily series pasted into a document).
+The checks are heuristics: they catch the project's own output shapes and common leaks, not every possible one.
 
 tests/test_scan_identifiers.py runs the same scan, so the test suite fails before any data can reach a commit.
 Adapted from the author's target_funds scanner (October 2026).
@@ -48,7 +49,8 @@ ALLOWED_DATA_DIRS = ("docs/",)
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 ALLOWED_IMAGE_DIRS = ("docs/img/",)
 # Public tables and records. Each must have the shape the project's tools write, so a pasted price series cannot pass.
-ALLOWED_DATA_FILES = {"ledger.csv", "register.csv", "forward/hypotheses.jsonl", "reference/DFF.csv"}
+ALLOWED_DATA_FILES = {"ledger.csv", "register.csv", "register_leverage.csv", "forward/hypotheses.jsonl", "reference/DFF.csv"}
+LEVERAGE_HEAD = "symbol,ticker,target_leverage,effective_from,effective_to"
 WINDOWS_FILE = re.compile(r"^results/\d{4}-\d{2}/windows\.csv$")
 MANIFEST_FILE = re.compile(r"^results/manifests/\d{4}-\d{2}\.json$")
 LEDGER_HEAD = "schema_version,asof,run_date_utc,ticker,symbol,issuer,underlying,status,target_leverage,inception_date,"
@@ -80,6 +82,11 @@ def shape_problems(rel, text):
         return [f"{rel}:{i}: not a ledger row" for i in bad[:5]]
     if rel == "register.csv":
         return [] if lines and lines[0].startswith(REGISTER_HEAD) else [f"{rel}: header is not the register schema"]
+    if rel == "register_leverage.csv":
+        if not lines or not lines[0].startswith(LEVERAGE_HEAD):
+            return [f"{rel}: header is not the leverage-period schema"]
+        bad = [i for i, l in enumerate(lines[1:], 2) if l.strip() and not re.match(r"^[A-Z]+:[A-Z]+,[A-Z]+,\d(\.\d+)?,\d{4}-\d{2}-\d{2},(\d{4}-\d{2}-\d{2})?(,|$)", l)]
+        return [f"{rel}:{i}: not a leverage-period row" for i in bad[:5]]
     if rel == "reference/DFF.csv":
         return [] if lines and lines[0] == "observation_date,DFF" else [f"{rel}: header is not the FRED DFF file"]
     if WINDOWS_FILE.match(rel):
@@ -190,8 +197,9 @@ MAX_DATED_ROWS = 4
 
 
 def daily_series_rows(text):
-    """Number of lines that look like rows of a dated numeric series (a date, then two or more decimals)."""
-    return sum(1 for line in text.splitlines() if DATED_ROW.match(line) and len(DECIMAL.findall(line)) >= 2)
+    """Number of lines that look like rows of a dated numeric series: a date, then at least one decimal number
+    (v0.1.0 asked for two and let a one-column series through; audit 2026-10-22, U04)."""
+    return sum(1 for line in text.splitlines() if DATED_ROW.match(line) and len(DECIMAL.findall(line)) >= 1)
 
 
 def clock_times(line):

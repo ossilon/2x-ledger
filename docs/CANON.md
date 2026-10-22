@@ -33,10 +33,12 @@ Definitions, in the paper's notation, with S the stock, beta the target leverage
 - Skewness: Bowley's robust measure with the 99th and 1st percentiles, `(P99 + P1 - 2 P50) / (P99 - P1)`.
 
 How the Ledger maps to it: our layer B is his R_BH. Our L2 (frictionless 2x on total return, charged fed funds on the
-borrowed turn) is his R_RB. Our L3 is his R_Act. Our `rebalance_pp` is his first bracket, and our residual is his
-second bracket with the sign reversed. We use the daily effective federal funds rate (DFF) known before the day,
-not the monthly average. Our prices are market closes plus distributions, so premium and discount changes sit in
-the residual, as in his data.
+borrowed turn) is his R_RB. Our L3 is his R_Act. Our `rebalance_pp` = L2 - B is his first bracket with the sign
+reversed. Our residual = L3 - L2 is his second bracket with the sign reversed. In both, positive means the fund
+side did better.
+
+We use the daily effective federal funds rate (DFF) known before the day, not the monthly average. Our prices are
+market closes plus distributions, so premium and discount changes sit in the residual, as in his data.
 
 **Bessembinder, H. (2026). "Volatility and Returns to Leveraged ETFs."** SSRN 7376118, 2026-08-31, 21 pages.
 Status: PRIMARY for sections I and II.A (pages 1 to 8).
@@ -98,10 +100,12 @@ S&P 500 2x and 3x funds fell over 2022 to 2023 while the index rose. Identity:
 covariance term explained about a quarter to a third of the shortfall. The ratio is unstable near zero index
 returns, so winsorize it.
 
-The Ledger does NOT publish this term. With returns alone, a constant daily cost c gives `lambda = L - c / r` and a
-covariance of `-c`. So the term measures cost as much as timing. Nobody can separate the two unless another source
-gives the cost (their own paper worked before fees). We publish the capture ratios on up and down days instead,
-costs included.
+The Ledger does NOT publish this term. The identity is `Cov(lambda, r) = E[(lambda - L) r] - (E[lambda] - L) E[r]`,
+the mean daily gap minus a mean term (v0.1.0 wrote it without the mean term; corrected 2026-10-22 after an
+independent audit). With returns alone, a constant daily cost c gives `lambda = L - c / r` and a covariance of
+`-c + c E[1 / r] E[r]`. That is not zero: a pure cost shows up as "timing". The covariance is observable, but
+returns alone do not split it into financing, exposure policy and closing-price noise. We publish the capture
+ratios on up and down days instead, costs included.
 
 ## 5. Compounding and autocorrelation (Hsieh, Chang and Chen)
 

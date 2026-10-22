@@ -27,7 +27,7 @@ def main(argv=None):
     rows = ledger[ledger["asof"] == a.asof]
     if rows.empty:
         sys.exit(f"no ledger rows for {a.asof}")
-    rows = rows[rows["restates"].fillna("") == ""] if "restates" in rows else rows
+    rows = rows.drop_duplicates("ticker", keep="last")      # a restated row is appended after the row it supersedes
     dest = ROOT / "data" / "pins" / f"{a.asof}.json"
     if dest.exists() and not a.repin:
         sys.exit(f"{dest} exists; pass --repin to overwrite and record why in the commit message")

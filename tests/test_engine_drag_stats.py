@@ -75,11 +75,17 @@ check("VR(2) on five returns matches the hand-computed Lo-MacKinlay value", abs(
 # 14. hurdle and Kelly
 h = st.hurdle_return(0.09, 0.04, 0.12)
 check("hurdle: sigma^2 + r + c in log terms", abs(h["hurdle_log_pct"] - 25.0) < 1e-9 and abs(h["hurdle_simple_pct"] - 100 * (np.exp(0.25) - 1)) < 1e-9, h)
-# deterministic planted Kelly: alternating returns m +/- s have mean m and variance s^2 exactly
+# deterministic planted Kelly: alternating returns m +/- s. The exact discrete optimum solves
+# (m+s)/(1+L(m+s)) + (m-s)/(1+L(m-s)) = 0, so L* = m / (s^2 - m^2); the textbook ratio m / s^2 is its approximation.
 m_, s_ = 0.001, 0.02
 alt = np.array([m_ + s_, m_ - s_] * 2000)
 L_hat, lo, hi = st.kelly_leverage(alt, 0.0, block=20, reps=200, seed=2)
-check("Kelly leverage on alternating returns is exactly mean / variance", abs(L_hat - m_ / (s_ ** 2 * 4000 / 3999)) < 1e-9, (L_hat, m_ / s_ ** 2))
+check("Kelly leverage on alternating returns is the exact closed form m / (s^2 - m^2)", abs(L_hat - m_ / (s_ ** 2 - m_ ** 2)) < 1e-6, (L_hat, m_ / (s_ ** 2 - m_ ** 2)))
+check("the exact optimum differs from the ratio approximation by the second-order term", abs(L_hat - m_ / s_ ** 2) > 1e-4)
+# feasibility: a -60% day caps the leverage below 1/0.6
+cap = np.array([0.01] * 100 + [-0.6])
+L_cap, _, _ = st.kelly_leverage(cap, 0.0)
+check("Kelly stays inside the feasible interval set by the worst day", L_cap < 1 / 0.6 and np.isfinite(L_cap), L_cap)
 # on a long GBM the point estimate is noisy (its standard error scales with sigma / sqrt(years) / sigma^2), so the
 # interval, not the point, is tested: the planted (mu - r) / sigma^2 must lie inside it. A GBM's arithmetic drift is mu.
 mu, sig = 0.12, 0.20
@@ -89,10 +95,18 @@ true_L = (mu - 0.03) / sig ** 2
 L_hat, lo, hi = st.kelly_leverage(rk, 0.03 / 252, block=21, reps=300, seed=2)
 check("Kelly interval on a long GBM covers the planted (mu - r)/sigma^2", lo <= true_L <= hi and abs(L_hat - true_L) < 1.0, (lo, L_hat, true_L, hi))
 
-# Hill tail index on Student-t(3) losses
+# Hill tail index on Student-t(3) losses, with its standard error alpha / sqrt(k)
 t3 = rng.standard_t(3, size=40000) * 0.02
 alpha = st.hill_tail_index(t3, frac=0.05)
 check("Hill estimator on t(3) returns gives a tail index near 3", 2.3 < alpha < 3.8, alpha)
+ht = st.hill_tail(t3, frac=0.05)
+check("hill_tail reports k and se = alpha / sqrt(k)", ht["alpha"] == alpha and abs(ht["se"] - alpha / np.sqrt(ht["k"])) < 1e-12 and ht["k"] == max(10, int(0.05 * (t3 < 0).sum())), ht)
+# variance-ratio z: a random walk gives |z| small, a trend gives z large; the robust variance shrinks the z of a
+# volatility-clustered walk relative to the homoskedastic formula
+z_rw = drag.variance_ratio_z(z, 10)
+check("robust VR z of iid returns is within 3", abs(z_rw) < 3, z_rw)
+check("robust VR z of trending returns is above 3", drag.variance_ratio_z(ar, 5) > 3, drag.variance_ratio_z(ar, 5))
+check("VR z is NaN where VR is NaN", np.isnan(drag.variance_ratio_z(z[:8], 5)))
 check("excess kurtosis of t(3) is large and of normal is near 0", st.excess_kurtosis(t3) > 3 and abs(st.excess_kurtosis(z)) < 0.3, (st.excess_kurtosis(t3), st.excess_kurtosis(z)))
 check("Bowley skew of a symmetric sample is near 0", abs(st.bowley_skew(z)) < 0.05, st.bowley_skew(z))
 

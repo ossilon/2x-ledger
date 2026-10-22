@@ -105,10 +105,13 @@ def load_fred(name="DFF", folder=REFERENCE):
     return s
 
 
-def accrual_fraction(index):
-    """Calendar-day accrual per row (days since previous row / 365). First row 0. Weekends/holidays accrue."""
+def accrual_fraction(index, basis=365):
+    """Calendar-day accrual per row (days since previous row / basis). First row 0. Weekends/holidays accrue.
+
+    The LETF kit uses 365 for everything; this project passes 360 for the money-market rate (rates.accrual) and 365
+    for the expense ratio (rates.fee_accrual)."""
     gaps = pd.Series(index, index=index).diff().dt.days.fillna(0.0)
-    return gaps / 365.0
+    return gaps / float(basis)
 
 
 def rate_on(index, rate, lag_rows=1):

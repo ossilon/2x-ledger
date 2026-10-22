@@ -13,6 +13,11 @@ best, worst, entry, exit_ = pr.oracle_bounds(p)
 check("oracle best gain is 60 -> 150 = +150%", abs(best - 150.0) < 1e-9, best)
 check("oracle worst loss is 120 -> 60 = -50%", abs(worst + 50.0) < 1e-9, worst)
 check("oracle entry precedes exit", entry == idx[3] and exit_ == idx[5] and entry < exit_, (entry, exit_))
+# a rising path has no loss and a falling path no gain (audit 2026-10-22, D09: v0.1.0 returned +10% as the "worst loss")
+rising = pd.Series([1.0, 1.1, 1.21], index=bdays(3, "2024-01-01"))
+falling = pd.Series([1.21, 1.1, 1.0], index=bdays(3, "2024-01-01"))
+check("oracle worst on a rising path is 0, equal to its maximum drawdown", pr.oracle_bounds(rising)[1] == 0.0 and abs(pr.oracle_bounds(rising)[0] - 21.0) < 1e-9)
+check("oracle best on a falling path is 0 and worst equals the drawdown", pr.oracle_bounds(falling)[0] == 0.0 and abs(pr.oracle_bounds(falling)[1] + 100 * (1 - 1 / 1.21)) < 1e-9)
 
 # calendar years and trailing windows: the baseline is the last session BEFORE the window so the first session counts
 idx = pd.bdate_range("2022-11-01", "2024-03-15")
@@ -36,6 +41,14 @@ check("2026-09-25 is not a month-end: T1M anchors at the last session on or befo
 # a month whose last weekday is the 30th (November 2026 ends on a Monday) is still a month-end
 idx_nov = pd.bdate_range("2025-06-02", "2026-11-30")
 check("2026-11-30 (a Monday) is a month-end: T1M anchors at 2026-10-30", pr.trailing(idx_nov, 1)[0] == pd.Timestamp("2026-10-30"), pr.trailing(idx_nov, 1)[0])
+# a month that ends on an exchange holiday (Good Friday 2024-03-29): with the full session calendar, 2024-03-28 is
+# the month-end and T1M anchors at 2024-02-29; the weekday rule alone gets it wrong (audit 2026-10-22, D06)
+cal = pd.bdate_range("2023-12-01", "2024-05-31")
+cal = cal[~cal.isin([pd.Timestamp("2024-01-15"), pd.Timestamp("2024-02-19"), pd.Timestamp("2024-03-29")])]
+idx_gf = cal[cal <= pd.Timestamp("2024-03-28")]
+check("holiday month-end: the session calendar makes 2024-03-28 a month-end", pr.trailing(idx_gf, 1, sessions=cal)[0] == pd.Timestamp("2024-02-29"), pr.trailing(idx_gf, 1, sessions=cal)[0])
+check("without the calendar the weekday rule misses it (documented limit)", pr.trailing(idx_gf, 1)[0] == pd.Timestamp("2024-02-28"))
+check("a mid-month end with a calendar is still not a month-end", pr.trailing(cal[cal <= pd.Timestamp("2024-03-14")], 1, sessions=cal)[0] == pd.Timestamp("2024-02-14"))
 # a year's return with that baseline equals the product of the year's daily returns
 import decompose as dc
 px = pd.Series(100.0 * (1.01) ** np.arange(len(idx)), index=idx)

@@ -48,7 +48,7 @@ import benchmark as bm  # noqa: E402
 import port  # noqa: E402
 
 ROOT = _paths.ROOT
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2       # v0.1.1: + vr_q10_z_under, tail_index_se_under, rel_growth_log_pct; rate on days/360
 MIN_HISTORY = 126
 TRAIL = 252
 GUARD_TOL = 0.25
@@ -60,17 +60,17 @@ COLUMNS = [
     "beta_1d", "beta_5d", "r2_1d", "te_annual_pct", "capture_up_1d", "capture_down_1d",
     "cost_annual_pct", "residual_annual_pct", "residual_ci_lo_pct", "residual_ci_hi_pct", "cost_multiple",
     "vol_under_annual_pct", "vol_gk_under_annual_pct", "vol_drag_annual_pct",
-    "vr_q10_under", "ar1_under",
+    "vr_q10_under", "vr_q10_z_under", "ar1_under",
     "rebalance_pp", "compounding_pp",
     "hurdle_return_pct", "kelly_L_under", "kelly_L_ci_lo", "kelly_L_ci_hi",
-    "worst_day_under_pct", "worst_day_under_hist_pct", "tail_index_under", "kurtosis_under", "reverse_splits",
+    "worst_day_under_pct", "worst_day_under_hist_pct", "tail_index_under", "tail_index_se_under", "kurtosis_under", "reverse_splits",
     "max_dd_fund_pct", "current_dd_fund_pct", "underwater_days", "roll1y_min_pct", "roll1y_med_pct", "roll1y_max_pct",
     "p_beat_stock_1y", "p_beat_2x_stock_1y",
     "aum_usd_m", "adv_20d_usd_m", "aum_to_adv_under", "dist_12m_pct",
     "fund_flows_1m_usd_m",
     # detail
     "ret_1m_fund_pct", "ret_1m_under_pct", "tr_incep_fund_pct", "tr_incep_under_pct", "tr_incep_ideal_pct",
-    "tr_incep_fedfunds_pct", "tr_incep_bh_pct", "cagr_fund_pct", "cagr_under_pct",
+    "tr_incep_fedfunds_pct", "tr_incep_bh_pct", "cagr_fund_pct", "cagr_under_pct", "rel_growth_log_pct",
     "financing_pp", "residual_pp", "levered_bh_pp", "financing_annual_pct",
     "max_dd_under_pct", "worst_day_fund_pct", "best_day_fund_pct", "oracle_best_pct", "oracle_worst_pct",
     "beta_5d_ls", "b_wiped", "beta_spx_under", "guard_flags", "quote_date", "restates", "inputs_sha256",
@@ -85,6 +85,20 @@ def month_end_before(index, asof):
     first_of_month = pd.Timestamp(asof).replace(day=1)
     prior = index[index < first_of_month]
     return prior[-1] if len(prior) else None
+
+
+def session_gap(fund_df, stock_df):
+    """A reason string when the fund and its stock do not share every session between the fund's first and last
+    captured close (either side missing a day, or the stock's data running past the fund's last close), else None."""
+    lo, hi = fund_df.index[0], fund_df.index[-1]
+    s = stock_df.loc[lo:]
+    fund_only = fund_df.index.difference(s.index)
+    stock_only = s.index.difference(fund_df.index)
+    if len(fund_only) or len(stock_only):
+        first = (list(fund_only) + list(stock_only))[0]
+        return (f"session mismatch: {len(fund_only)} fund-only and {len(stock_only)} stock-only sessions "
+                f"(first {pd.Timestamp(first).date()}); repair the capture before this fund is computed")
+    return None
 
 
 def spx_returns(root=ROOT):
@@ -121,7 +135,12 @@ def fund_row(symbol, asof, funds, run_date, root=ROOT, reps=1000):
     if fund_df.empty:
         row.update(coverage="no fund data by asof", ranked=False, history_days=0)
         return row, inputs
-    fund_a, stock_a, info = al.align(fund_df, stock_df.loc[fund_df.index[0]:])
+    gap = session_gap(fund_df, stock_df)
+    if gap:
+        # an inner join would turn two sessions into one and invent a cost (audit 2026-10-22, D03): never for daily-reset math
+        row.update(coverage=gap, ranked=False, history_days=0)
+        return row, inputs
+    fund_a, stock_a, info = al.align(fund_df, stock_df.loc[fund_df.index[0]:fund_df.index[-1]])
     idx = fund_a.index
     n = len(idx)
     row["history_days"] = int(n - 1)
@@ -129,6 +148,7 @@ def fund_row(symbol, asof, funds, run_date, root=ROOT, reps=1000):
     if n < 20:
         row.update(coverage="under 20 sessions")
         return row, inputs
+    years_life = dc.years_in(idx)
     # leverage, rate, accrual
     L = rg.target_leverage_series(symbol, idx, root)
     row["target_leverage"] = float(L.iloc[-1])
@@ -167,25 +187,29 @@ def fund_row(symbol, asof, funds, run_date, root=ROOT, reps=1000):
     row.update(beta_1d=b["beta"], r2_1d=b["r2"], te_annual_pct=lv.tracking_error_annual(rf, rs, Lt))
     cu, cd = lv.capture_ratios(rf, rs)
     row.update(capture_up_1d=cu, capture_down_1d=cd)
-    fee_a = rates.fee_accrual(tr_rows.index, float(f["expense_ratio_pct"])).iloc[1:]
+    fee_a = rates.fee_accrual(tr_rows.index, rg.expense_ratio_series(symbol, tr_rows.index, root)).iloc[1:]
     ra = tr_rows["rate_accrual"].iloc[1:]
     row["beta_5d"] = lv.exact_beta(rf, rs, k=5, rate_accrual=ra, fee_accrual=fee_a, payout=tr_rows["payout"].iloc[1:])[0]
     row["beta_5d_ls"] = lv.cubic_beta(lv.kday(rf, rs, k=5, rate_accrual=ra, fee_accrual=fee_a))[0]
     row["vol_under_annual_pct"] = drag.realized_vol(rs)
     ohlc = trm.bars(stock_sym, root).loc[tr_rows.index[1]:tr_rows.index[-1]]
     row["vol_gk_under_annual_pct"] = drag.garman_klass_vol(ohlc["open"], ohlc["high"], ohlc["low"], ohlc["close"])
-    row["vol_drag_annual_pct"] = drag.exact_penalty(rs, 2.0)[1]
+    row["vol_drag_annual_pct"] = drag.exact_penalty(rs, 2.0, years=dc.years_in(tr_rows.index))[1]
     row["vr_q10_under"] = drag.variance_ratio(rs, 10)
+    row["vr_q10_z_under"] = drag.variance_ratio_z(rs, 10)
     row["ar1_under"] = drag.ar1(rs)
     row["kurtosis_under"] = st.excess_kurtosis(rs)
     k_l, k_lo, k_hi = st.kelly_leverage(rs, ra.values)
     row.update(kelly_L_under=k_l, kelly_L_ci_lo=k_lo, kelly_L_ci_hi=k_hi)
-    # hurdle on one footing: the stock's variance, the mean rate and the fund's cost all over the fund's life
+    # hurdle on one footing, all over the fund's life: the exact compounding penalty of a 2x reset on the stock's
+    # daily returns (not the sigma^2 law: jumps break it; engine review 2026-10-22), the mean rate, the fund's cost
     rs_life = lay["r_stock"].iloc[1:]
-    sigma2_life = (drag.realized_vol(rs_life) / 100) ** 2
-    r_life = float(lay["rate_accrual"].iloc[1:].sum() / dc.years_in(lay.index))
-    if np.isfinite(sigma2_life) and np.isfinite(row["cost_annual_pct"]):
-        row["hurdle_return_pct"] = st.hurdle_return(sigma2_life, r_life, row["cost_annual_pct"] / 100)["hurdle_log_pct"]
+    pen_total, _ = drag.exact_penalty(rs_life, 2.0)
+    r_life = float(lay["rate_accrual"].iloc[1:].sum() / years_life)
+    if np.isfinite(pen_total) and np.isfinite(row["cost_annual_pct"]):
+        row["hurdle_return_pct"] = st.hurdle_return(-pen_total / years_life, r_life, row["cost_annual_pct"] / 100)["hurdle_log_pct"]
+    if float(lay["L3"].iloc[-1]) > 0:
+        row["rel_growth_log_pct"] = 100 * float(np.log(lay["L3"].iloc[-1] / lay["L0"].iloc[-1])) / years_life
     spx = spx_returns(root)
     if spx is not None:
         both = pd.concat([rs.rename("s"), spx.rename("m")], axis=1, join="inner", sort=True).dropna()
@@ -198,7 +222,8 @@ def fund_row(symbol, asof, funds, run_date, root=ROOT, reps=1000):
     full_stock = stock_df["tr"]                                   # the stock's whole captured history to asof
     row["worst_day_under_pct"] = st.worst_day(lay["L0"])         # since the fund's inception
     row["worst_day_under_hist_pct"] = st.worst_day(full_stock)   # since the stock's listing or the 5000-bar window
-    row["tail_index_under"] = st.hill_tail_index(full_stock.pct_change().dropna())
+    ht = st.hill_tail(full_stock.pct_change().dropna())
+    row.update(tail_index_under=ht["alpha"], tail_index_se_under=ht["se"])
     row["max_dd_under_pct"] = st.max_drawdown(lay["L0"])
     row.update(max_dd_fund_pct=st.max_drawdown(lay["L3"]), current_dd_fund_pct=st.current_drawdown(lay["L3"]),
                underwater_days=st.underwater_days(lay["L3"]), worst_day_fund_pct=st.worst_day(lay["L3"]),
@@ -262,17 +287,18 @@ def windows_table(symbol, asof, funds, root=ROOT):
         stock_df = trm.stock_tr(f["underlying"], root).loc[:asof]
     except (FileNotFoundError, tc.NoFetchUnderCutoff):      # nothing captured under the cutoff; other errors propagate
         return []
-    if len(fund_df) < 20:
+    if len(fund_df) < 20 or session_gap(fund_df, stock_df):
         return []
-    fund_a, stock_a, _ = al.align(fund_df, stock_df.loc[fund_df.index[0]:])
+    fund_a, stock_a, _ = al.align(fund_df, stock_df.loc[fund_df.index[0]:fund_df.index[-1]])
     idx = fund_a.index
     payout = (fund_a["dividend"] / fund_a["close"].shift(1)).fillna(0.0)
     lay = dc.layers(stock_a["tr"], rg.target_leverage_series(symbol, idx, root), rates.fed_funds_daily(idx), rates.accrual(idx),
                     fund_tr=fund_a["tr"], payout=payout)
+    sessions = trm.bars(f["underlying"], root).index          # the stock's full session calendar decides month-ends
     rows = []
     wins = [(f"Y{y}", d0, d1) for y, (d0, d1) in pr.calendar_years(idx).items() if d0 != d1]
     for label, months in (("T1M", 1), ("T3M", 3), ("T12M", 12)):
-        d0, d1 = pr.trailing(idx, months)
+        d0, d1 = pr.trailing(idx, months, sessions=sessions)
         if d0 != d1:
             wins.append((label, d0, d1))
     for label, d0, d1 in wins:
@@ -285,7 +311,15 @@ def windows_table(symbol, asof, funds, root=ROOT):
 
 
 def run(asof, root=ROOT, write=True, restate=False, cutoff=None, reps=1000, symbols=None):
+    """One monthly run. The cutoff (default: the end of the run's UTC day) is activated here for every loader, so
+    the Python entry point and the CLI enforce the same point-in-time contract (audit 2026-10-22, D05)."""
     run_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cutoff = cutoff or f"{run_date}T23:59:59Z"
+    with captured_by(cutoff):
+        return _run(asof, root, write, restate, cutoff, reps, symbols, run_date)
+
+
+def _run(asof, root, write, restate, cutoff, reps, symbols, run_date):
     funds = rg.load_funds(root)
     problems = rg.validate(root)
     if problems:
@@ -324,8 +358,10 @@ def run(asof, root=ROOT, write=True, restate=False, cutoff=None, reps=1000, symb
             out = pd.concat([old, table.astype(str).replace("nan", "")], ignore_index=True)
         else:
             out = table.astype(str).replace("nan", "")
+        out = out.reindex(columns=COLUMNS).fillna("")      # schema order; rows of an older schema get empty new columns
         out.to_csv(ledger, index=False, lineterminator="\n")
         rg.public_register(root).to_csv(Path(root) / "register.csv", index=False, lineterminator="\n")
+        rg.public_leverage(root).to_csv(Path(root) / "register_leverage.csv", index=False, lineterminator="\n")
         month = asof_s[:7]
         rdir = Path(root) / "results" / month
         rdir.mkdir(parents=True, exist_ok=True)
@@ -349,11 +385,7 @@ def main(argv=None):
     ap.add_argument("--reps", type=int, default=1000)
     ap.add_argument("--symbols", nargs="*", default=None)
     a = ap.parse_args(argv)
-    if a.cutoff:
-        with captured_by(a.cutoff):
-            run(a.asof, write=not a.no_write, restate=a.restate, cutoff=a.cutoff, reps=a.reps, symbols=a.symbols)
-    else:
-        run(a.asof, write=not a.no_write, restate=a.restate, reps=a.reps, symbols=a.symbols)
+    run(a.asof, write=not a.no_write, restate=a.restate, cutoff=a.cutoff, reps=a.reps, symbols=a.symbols)
     return 0
 
 

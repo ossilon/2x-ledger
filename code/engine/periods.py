@@ -13,7 +13,7 @@
 - p_beat(fund_index, bench_index, days, multiple): share of windows where the fund's return exceeded `multiple`
   times the benchmark's return.
 - oracle_bounds(index): best entry-to-exit gain and worst entry-to-exit loss inside the window (percent): the
-  perfect-timing brackets. The worst is the maximum drawdown.
+  perfect-timing brackets. The worst equals the maximum drawdown; both are 0 when no gain (loss) exists.
 """
 import sys
 from pathlib import Path
@@ -36,18 +36,24 @@ def calendar_years(index):
     return out
 
 
-def trailing(index, months):
+def trailing(index, months, sessions=None):
     """(baseline, end) covering the last `months` calendar months of returns.
 
     When `end` is the last session of its month, the baseline is the last session of the month `months` earlier,
     so T1M on a month-end as-of date is exactly the calendar month (audit 2026-10-22: anchoring on end minus one
     month landed on a Sunday and pulled in an extra session). Otherwise the baseline is the last session on or
     before end minus `months` months.
+
+    `sessions`: the full session calendar (an index that runs past `end`), used to decide whether `end` is the last
+    session of its month. Without it, the next weekday decides, which is wrong when the month ends on an exchange
+    holiday (Good Friday 2024-03-29; audit 2026-10-22, D06).
     """
     end = index[-1]
-    # `end` is a month-end when the next business day falls in the next month (the index is always cut at the as-of
-    # date, so "last session in the index for this month" would be true on any date; audit 2026-10-22)
-    month_end = (end + pd.offsets.BDay(1)).month != end.month
+    later = sessions[sessions > end] if sessions is not None else None
+    if later is not None and len(later):
+        month_end = later[0].month != end.month           # no later session in the same month
+    else:
+        month_end = (end + pd.offsets.BDay(1)).month != end.month
     if month_end:
         target = (end.to_period("M") - months).to_timestamp(how="end").normalize()
     else:
@@ -85,14 +91,15 @@ def p_beat(fund_index, bench_index, days, multiple=1.0):
 
 
 def oracle_bounds(index_series):
-    """(best_pct, worst_pct, best_entry, best_exit): max gain from any earlier day, and the maximum drawdown."""
+    """(best_pct, worst_pct, best_entry, best_exit): the largest gain and the largest loss from any close to a later
+    or the same close. Both include the zero-length hold, so best >= 0 and worst <= 0, and worst equals the maximum
+    drawdown exactly (v0.1.0 excluded the same day and returned a positive "loss" on a rising path; audit
+    2026-10-22, D09)."""
     s = index_series.astype(float)
-    run_min = s.cummin().shift(1)
-    gains = s / run_min - 1.0
-    run_max = s.cummax().shift(1)
-    losses = s / run_max - 1.0
-    best_exit = gains.idxmax() if gains.notna().any() else None
-    best = float(gains.max()) if gains.notna().any() else float("nan")
-    worst = float(losses.min()) if losses.notna().any() else float("nan")
-    best_entry = s.loc[:best_exit].iloc[:-1].idxmin() if best_exit is not None else None
+    gains = s / s.cummin() - 1.0
+    losses = s / s.cummax() - 1.0
+    best_exit = gains.idxmax()
+    best = float(gains.max())
+    worst = float(losses.min())
+    best_entry = s.loc[:best_exit].idxmin()
     return 100 * best, 100 * worst, best_entry, best_exit

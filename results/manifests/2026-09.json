@@ -1,7 +1,7 @@
 {
   "asof": "2026-09-30",
   "run_date_utc": "2026-10-22",
-  "schema_version": 1,
+  "schema_version": 2,
   "funds": 21,
   "cutoff": "2026-10-21T23:59:59Z",
   "inputs": [
@@ -392,6 +392,6 @@
     }
   ],
   "inputs_sha256": "37b15089997c651b36d3a9199f234b8fda539810b83124e81b8922f9d9055c1b",
-  "ledger_sha256": "4432c20d5cb4d6aef615e1e76f03ff047eeedad10fef3183f9969231342eddf7",
-  "windows_sha256": "f183f79ec1c954d87b84898e7e5049c6c840782be5729ae6b45ef8bcb28a1509"
+  "ledger_sha256": "c1512f050837c2083f07d1518a2cf3df0137c3b0a0105f9e3a3c0667f7a08fb5",
+  "windows_sha256": "570d13b5e79684797b194974830eb2d3515e966eee60a880301258613bfd50a0"
 }

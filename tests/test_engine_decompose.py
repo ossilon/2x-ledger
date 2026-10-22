@@ -44,6 +44,10 @@ check("flat stock: B keeps the loan fixed, 2 - prod(1 + r a)", abs(s["b_pct"] - 
 check("flat stock: the reset fund de-levers as it pays interest, a small positive rebalance_pp", 0 < s["rebalance_pp"] < 0.5 and abs(s["rebalance_pp"] - 100 * (expected - b_expected)) < 1e-8, s["rebalance_pp"])
 check("flat stock: financing_pp equals the whole L2 shortfall", abs(s["financing_pp"] - 100 * (expected - 1)) < 1e-8)
 check("financing_annual_pct is about 5% a year", abs(dc.financing_annual_pct(lay) - 5.0) < 0.05, dc.financing_annual_pct(lay))
+check("financing_annual_pct is the log rate ln(L1/L2) per calendar year", abs(dc.financing_annual_pct(lay) - 100 * np.log(lay["L1"].iloc[-1] / lay["L2"].iloc[-1]) / dc.years_in(idx)) < 1e-12)
+# day count: the reference rate accrues on days / 360 (money-market convention), the fee on days / 365
+check("rates.accrual charges one calendar day as 1/360", abs(rates.accrual(idx).iloc[1] - 1 / 360) < 1e-15 and abs(rates.accrual(idx)[idx[idx.dayofweek == 0][1]] - 3 / 360) < 1e-15)
+check("rates.fee_accrual charges one calendar day as expense / 365", abs(rates.fee_accrual(idx, 1.0).iloc[1] - 0.01 / 365) < 1e-15)
 # no look-ahead: a rate that jumps on day k is used from day k+1
 rate_hist = pd.Series(0.02, index=pd.date_range("2019-12-01", "2021-12-31"))
 k = idx[100]

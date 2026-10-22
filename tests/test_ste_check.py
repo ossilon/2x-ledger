@@ -19,6 +19,8 @@ check("an unlisted gerund after 'by' is flagged", any("-ing" in p for p in ste.c
 check("a technical -ing name passes", ste.check_sentence("The rebalancing effect is small.") == [])
 check("a banned Latin abbreviation is flagged", any("banned" in p for p in ste.check_sentence("Costs vary, e.g. by issuer.")))
 check("a British spelling is flagged", any("British" in p for p in ste.check_sentence("The analyser models the behaviour.")))
+check("a short quoted title is skipped", ste.check_sentence('The paper "Preying on Leveraged ETFs" studies Korea.') == [])
+check("a long quotation is still checked (audit U04)", any("words" in p for p in ste.check_sentence('"' + " ".join(["word"] * 30) + '" is quoted.')))
 
 md = ["# Title", "", "| A | B |", "|---|---|", "| The cost is computed. | Fine. |", "", "- Run it.", "- Read the file.", "",
       "```", "code with passive voice is skipped", "```", "", "One. Two. Three. Four. Five. Six. Seven."]

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """The one market series outside the fund universe: the S&P 500 close, for the column beta_spx_under.
 
-The series lives in data/reference/<name>.csv (private, git-ignored), two columns: date, close. The file is a copy
-of a daily close series, listed in data/reference/manifest.jsonl with the file's SHA-256, the time the bars were
-fetched from their feed (fetched_utc), the time of the copy (copied_utc) and a note on the source. The fetch time
-is the point-in-time stamp: captured_by(cutoff) hides a copy whose bars were fetched after the cutoff, like every
-other input. The author's copy comes from a private price library (a TradingView CSV export topped up through the
+The series lives in data/reference/<name>_<sha12>.csv (private, git-ignored), two columns: date, close. Each
+import writes a new file named by its content hash, so earlier copies stay replayable; the record in
+data/reference/manifest.jsonl carries the file's SHA-256, the time the bars were fetched from their feed
+(fetched_utc), the time of the copy (copied_utc) and a note on the source. The fetch time is the point-in-time
+stamp: captured_by(cutoff) hides a copy whose bars were fetched after the cutoff, like every other input. The author's copy comes from a private price library (a TradingView CSV export topped up through the
 TradingView MCP); a public clone can import any daily close series with the same two columns.
 
     py -I code\\domain\\benchmark.py import <source.csv> --fetched-utc 2026-01-31T21:00:00Z --source "..."
@@ -64,14 +64,19 @@ def import_csv(src, fetched_utc, source, name=SPX, root=ROOT, copied_utc=None):
         raise ValueError(f"{src}: non-positive closes")
     folder = reference_dir(root)
     folder.mkdir(parents=True, exist_ok=True)
-    dest = folder / f"{name}.csv"
-    tmp = dest.with_suffix(".tmp")
+    tmp = folder / f"{name}.tmp"
     out.to_csv(tmp, date_format="%Y-%m-%d", float_format="%.6f")
+    sha = hashlib.sha256(tmp.read_bytes()).hexdigest()
+    # content-addressed file name: a later import never overwrites an earlier copy, so a replay under an earlier
+    # cutoff still finds its bytes (audit 2026-10-22, D05)
+    dest = folder / f"{name}_{sha[:12]}.csv"
+    if dest.exists() and dest.read_bytes() != tmp.read_bytes():
+        raise ValueError(f"{dest.name}: exists with different bytes (hash collision?)")
     tmp.replace(dest)
     now = copied_utc or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     pit._check(now)
     rec = {"name": name, "path": dest.name, "rows": int(len(out)), "first": str(out.index[0].date()),
-           "last": str(out.index[-1].date()), "sha256": hashlib.sha256(dest.read_bytes()).hexdigest(),
+           "last": str(out.index[-1].date()), "sha256": sha,
            "fetched_utc": fetched_utc, "copied_utc": now, "source": source, "result": "saved"}
     with (folder / "manifest.jsonl").open("a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(rec, sort_keys=True) + "\n")

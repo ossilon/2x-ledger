@@ -18,11 +18,13 @@ accrual and fee accrual.
 - exact_beta: the same one-parameter idea with the exact discrete daily-reset model inside the window.
 
 Not here, on purpose: Bianchi and Goldberg's timing covariance Cov(lambda_t, r_t) with lambda_t = r_fund / r_stock.
-A constant daily cost c gives lambda_t = L - c / r_t and Cov(lambda, r) = -c, so from returns alone the term is
-the fund's cost, not its timing; removing the mean daily gap first removes any genuine covariance as well, because
-Cov(lambda, r) = E[(lambda - L) r] IS the mean gap. The two are one observable (audit 2026-10-22). The capture
-ratios are kept as what a holder sees on up and down days, costs included: a fund with constant cost shows capture
-below L on up days and above L on down days.
+The identity is Cov(lambda, r) = E[(lambda - L) r] - (E[lambda] - L) E[r]: the mean daily gap minus a mean term
+(v0.1.0's docs dropped the mean term; audit 2026-10-22, D02). A constant daily cost c gives lambda_t = L - c / r_t
+and Cov(lambda, r) = -c + c E[1 / r] E[r], which is non-zero and, after the winsorizing the ratio needs, close to
+-c: a pure cost shows up as "timing". From returns alone the covariance mixes financing, exposure policy and
+closing-price noise, so the ledger does not publish it as a timing measure. The capture ratios are kept as what a
+holder sees on up and down days, costs included: a fund with constant cost shows capture below L on up days and
+above L on down days.
 """
 import numpy as np
 import pandas as pd
@@ -85,16 +87,25 @@ def kday(r_fund, r_stock, k=5, rate_accrual=None, fee_accrual=None):
     return pd.DataFrame(rows).set_index("end") if rows else pd.DataFrame(columns=["y", "x", "v", "rdt", "fdt"])
 
 
-def exact_beta(r_fund, r_stock, k=5, rate_accrual=None, fee_accrual=None, payout=None, lo=0.0, hi=4.0, iters=200):
+def exact_beta(r_fund, r_stock, k=5, rate_accrual=None, fee_accrual=None, payout=None, lo=0.0, hi=4.0, iters=200,
+               grid=401, tie_tol=1e-9, tie_gap=0.05):
     """One-parameter least squares with the EXACT discrete daily-reset model (no small-move approximation).
 
     Minimizes over beta:  sum_i ( y_i - sum_{t in window i} log((1 - d_t)(1 + beta r_t - (beta - 1) ra_t - fa_t) + d_t) )^2
     where y_i is the fund's k-day log return, r_t the stock's daily simple return, ra_t the daily rate accrual,
     fa_t the daily fee accrual and d_t the fund's payout fraction (as in decompose.layers). Leung and Santoli's
     model (cubic_beta) expands the log to second order, which is exact only for small daily moves; single stocks
-    with 30% days bias it upward (SMCX 2.17 vs 2.006 on the same data, audit 2026-10-22). Golden-section search on
-    [lo, hi]. Returns (beta, rmse, n_windows); NaN when a fund day is -100% or no beta keeps every day's gross
-    return positive (the search would otherwise drift to a bound).
+    with 30% days bias it upward (SMCX 2.17 vs 2.006 on the same data, audit 2026-10-22).
+
+    Search: (1) the feasible interval of beta, where every day's gross return stays positive, is computed from the
+    daily bounds beta (r_t - ra_t) > -A_t and intersected with [lo, hi]; (2) the objective is scanned on a grid over
+    that interval; (3) golden section refines the best grid cell. v0.1.0 probed two interior points and returned
+    NaN when both were infeasible although a feasible beta existed (audit 2026-10-22, D04). "Exact" names the
+    model, not a guarantee of identification: the k-day sums can be equal at two betas on a contrived path (the
+    audit's [-0.10, +0.20, 0, 0, 0] repeated gives 1.12 at both 2 and 3). When two grid minima more than `tie_gap`
+    apart fit equally well (within `tie_tol`), the function returns NaN rather than pick one.
+
+    Returns (beta, rmse, n_windows); NaN when a fund day is -100%, no beta is feasible, or the fit is ambiguous.
     """
     rf = np.asarray(r_fund, dtype=float)
     rs = np.asarray(r_stock, dtype=float)
@@ -108,18 +119,35 @@ def exact_beta(r_fund, r_stock, k=5, rate_accrual=None, fee_accrual=None, payout
     groups = np.repeat(np.arange(n // k), k)
     y = np.array([np.log1p(rf[groups == g]).sum() for g in range(n // k)])
 
+    # feasibility: (1 - d)(1 + ra - fa + beta (r - ra)) + d > 0  <=>  beta (r - ra) > -(1 + ra - fa + d / (1 - d))
+    slope = rs - ra
+    A = 1.0 + ra - fa + pay / (1.0 - pay)
+    pos, neg = slope > 0, slope < 0
+    f_lo = max(lo, float((-A[pos] / slope[pos]).max()) + 1e-12) if pos.any() else lo
+    f_hi = min(hi, float((-A[neg] / slope[neg]).min()) - 1e-12) if neg.any() else hi
+    if np.any((slope == 0) & (A <= 0)) or not f_hi > f_lo:
+        return float("nan"), float("nan"), int(n // k)
+
     def objective(beta):
         g = (1.0 - pay) * (1.0 + beta * rs - (beta - 1.0) * ra - fa) + pay
         if np.any(g <= 0):
             return np.inf
-        fit = np.array([np.log(g[groups == i]).sum() for i in range(n // k)])
+        fit = np.bincount(groups, weights=np.log(g))
         return float(np.sum((y - fit) ** 2))
 
-    if not np.isfinite(objective(lo)) and not np.isfinite(objective(hi)) and not np.isfinite(objective((lo + hi) / 2)):
+    betas = np.linspace(f_lo, f_hi, grid)
+    vals = np.array([objective(b) for b in betas])
+    if not np.isfinite(vals).any():
+        return float("nan"), float("nan"), int(n // k)
+    i_best = int(np.nanargmin(vals))
+    # local minima on the grid that tie with the best but sit far from it: ambiguous identification
+    local = [i for i in range(1, grid - 1) if vals[i] <= vals[i - 1] and vals[i] <= vals[i + 1]]
+    ties = [i for i in local if abs(betas[i] - betas[i_best]) > tie_gap and vals[i] - vals[i_best] <= tie_tol * max(1.0, vals[i_best])]
+    if ties:
         return float("nan"), float("nan"), int(n // k)
 
     phi = (np.sqrt(5) - 1) / 2
-    a, b = lo, hi
+    a, b = betas[max(i_best - 1, 0)], betas[min(i_best + 1, grid - 1)]
     c, d = b - phi * (b - a), a + phi * (b - a)
     fc, fd = objective(c), objective(d)
     for _ in range(iters):
@@ -131,7 +159,7 @@ def exact_beta(r_fund, r_stock, k=5, rate_accrual=None, fee_accrual=None, payout
             a, c, fc = c, d, fd
             d = a + phi * (b - a)
             fd = objective(d)
-        if b - a < 1e-10:
+        if b - a < 1e-12:
             break
     beta = (a + b) / 2
     s = objective(beta)

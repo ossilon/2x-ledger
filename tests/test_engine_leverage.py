@@ -81,8 +81,19 @@ check("a -100% fund day gives NaN, not a boundary value", np.isnan(lv.exact_beta
 r_cost = 2.0 * r_s - 0.30 / 252                         # exactly 2x minus a constant daily cost
 cu_c, cd_c = lv.capture_ratios(r_cost, r_s)
 check("a constant cost lowers up-day capture below 2 and raises down-day capture above 2", cu_c < 2.0 < cd_c, (cu_c, cd_c))
-# and a leverage-return co-movement is the same observable as a cost: lambda = 2 + 5 r has mean gap 5 Var(r) = Cov(lambda, r)
+# the covariance identity: Cov(lambda, r) = E[(lambda - L) r] - (E[lambda] - L) E[r]. For lambda = 2 + 5 r the mean
+# gap is 5 E[r^2] and the mean term is 5 E[r]^2, so Cov = 5 Var(r). v0.1.0's docs dropped the mean term (audit D02).
 lam = 2.0 + 5.0 * r_s
 gap = (lam * r_s) - 2.0 * r_s
-check("Cov(lambda, r) equals the mean daily gap (why no separate timing column exists)", abs(float(gap.mean()) - float(np.cov(lam, r_s, ddof=0)[0, 1]) - 5.0 * float(r_s.mean()) ** 2) < 1e-12)
+check("Cov(lambda, r) = mean daily gap - (E[lambda] - L) E[r]", abs(float(gap.mean()) - float(np.cov(lam, r_s, ddof=0)[0, 1]) - 5.0 * float(r_s.mean()) ** 2) < 1e-12)
+# a constant cost c gives lambda = L - c / r and Cov = -c + c E[1/r] E[r]: a cost shows up as "timing" (the audit's example)
+rc = np.array([0.01, 0.02]); lam_c = 2.0 - 0.001 / rc
+check("a constant cost alone produces a non-zero covariance of the realized leverage with the return",
+      abs(float(np.cov(lam_c, rc, ddof=0)[0, 1]) - (-0.001 + 0.001 * np.mean(1 / rc) * rc.mean())) < 1e-15)
+# exact_beta search: a feasible beta must be found even when the midpoint probes are infeasible (audit D04)
+rs_f = np.tile([-0.8, 0.02, 0.03, 0.01, 0.04], 6)
+check("exact_beta finds beta = 1 on a path where only beta < 1.25 is feasible", abs(lv.exact_beta(rs_f, rs_f, k=5)[0] - 1.0) < 1e-6, lv.exact_beta(rs_f, rs_f, k=5))
+# and refuses to pick between two betas that fit the k-day sums equally (the audit's contrived path)
+rs_t = np.tile([-0.10, 0.20, 0.0, 0.0, 0.0], 6)
+check("exact_beta returns NaN when two betas fit the windows equally (ambiguous identification)", np.isnan(lv.exact_beta(2.0 * rs_t, rs_t, k=5)[0]))
 check("ols on too few points is NaN, not an exception", np.isnan(lv.ols_beta([0.01, 0.02], [0.005, 0.01])["beta"]))

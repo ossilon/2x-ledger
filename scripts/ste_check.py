@@ -92,9 +92,14 @@ def public_files(root=ROOT):
 QUOTED = re.compile(r'"[^"\n]{3,}"')          # a quoted title or phrase is someone else's words
 
 
+def _quote(m):
+    """Skip a quotation of at most 15 words (a title, a term); a longer one is our own prose and stays checked."""
+    return " QUOTE " if len(m.group(0).split()) <= 15 else m.group(0)
+
+
 def strip_markup(text):
     text = CODE_SPAN.sub(" CODE ", text)
-    text = QUOTED.sub(" QUOTE ", text)
+    text = QUOTED.sub(_quote, text)
     text = LINK.sub(r"\1", text)
     text = URL.sub(" URL ", text)
     text = HTML.sub(" ", text)

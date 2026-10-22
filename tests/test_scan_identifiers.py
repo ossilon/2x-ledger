@@ -20,6 +20,10 @@ check("the private identifier list is ignored", si.ignored("identifiers_local.tx
 
 series = "\n".join(f"2024-01-{d:02d},100.{d},101.{d}" for d in range(1, 8))
 check("seven dated numeric rows look like a daily series", si.daily_series_rows(series) == 7)
+check("a one-column dated series counts too (audit U04)", si.daily_series_rows("\n".join(f"2024-01-{d:02d},0.0{d}" for d in range(1, 8))) == 7)
+check("a leverage-period table passes the shape check",
+      si.shape_problems("register_leverage.csv", si.LEVERAGE_HEAD + ",source,note\nNASDAQ:TSLL,TSLL,1.5,2022-08-09,2024-04-02,src,\nNASDAQ:TSLL,TSLL,2.0,2024-04-02,,src,\n") == [])
+check("a leverage table with a price-like row fails", si.shape_problems("register_leverage.csv", si.LEVERAGE_HEAD + "\n2024-01-02,TSLL,100.5,2024-01-02,\n") != [])
 check("a windows table is an allowed data file", si.allowed_data("results/2026-09/windows.csv"))
 check("a manifest is an allowed data file", si.allowed_data("results/manifests/2026-09.json"))
 check("a stray CSV is not", not si.allowed_data("results/2026-09/daily.csv"))
