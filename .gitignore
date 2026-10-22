@@ -1,0 +1,33 @@
+# Licensed and private data never enter the repository. TradingView serves its bars for display only; Yahoo
+# series and issuer files are for personal use; downloaded papers are copyrighted. data/README.md names each
+# folder's source. The repository publishes derived statistics only (ledger.csv, register.csv, results/manifests).
+data/*
+!data/README.md
+
+# Private working documents (planning notes, build prompts, audit drafts, the private identifier list).
+PLAN.md
+PROMPT.md
+BACKLOG.md
+identifiers_local.txt
+docs/*_draft.md
+docs/*_DRAFT.md
+forward/*_draft.json
+
+# Per-run raw outputs: someone could rebuild daily series from them. Aggregates only are published.
+results/raw/
+
+# Local cross-checks import private sibling folders outside this repository.
+tests/*_local.py
+
+# Python caches, build output, environments, local secrets
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.env
+
+# Private cross-checks that need the author's sibling kits
+scripts/*_local.py

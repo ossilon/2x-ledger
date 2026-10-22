@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software or its data, cite it as below."
+title: "2x Single-Stock ETF Ledger"
+type: software
+version: 0.1.0
+date-released: 2026-10-22
+license: MIT
+repository-code: "https://github.com/ossilon/twox-ledger"
+url: "https://github.com/ossilon/twox-ledger"
+authors:
+  - name: "ossilon"
+abstract: >-
+  A monthly research ledger on US-listed 2x long single-stock ETFs. The engine measures each fund against
+  its stock on total return, splits the result into compounding, financing, rebalancing and product cost,
+  and publishes one CSV row per fund per month with the method, tests and pre-registered hypotheses.
+keywords:
+  - leveraged ETF
+  - single-stock ETF
+  - daily reset
+  - volatility drag
+  - financing cost

@@ -1,0 +1,49 @@
+"""Reference rate and accrual for the engine, with the LETF kit's conventions (ported in code/port.py).
+
+- fed_funds_daily(index): effective federal funds (FRED DFF, decimal, from reference/DFF.csv) known BEFORE each
+  day: the value dated on or before the previous row (port.rate_on, lag one row). The first row takes the last value
+  dated before it. Days after the last DFF date carry the last value forward.
+- accrual(index): calendar days since the previous row / 365 (first row 0), port.accrual_fraction.
+- fee_accrual(index, expense_pct): annual expense ratio (percent, scalar or Series by date) times the accrual.
+"""
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import _paths  # noqa: E402,F401
+import port as data_io  # noqa: E402  (load_fred, rate_on, accrual_fraction ported from the LETF kit's data_io.py)
+
+
+def fed_funds_daily(index, rate_series=None):
+    s = data_io.load_fred("DFF") if rate_series is None else rate_series.sort_index()
+    out = data_io.rate_on(index, s, lag_rows=1)
+    if pd.isna(out.iloc[0]):
+        prev = s[s.index < index[0]]
+        if prev.empty:
+            raise ValueError(f"no reference rate dated before {index[0].date()}")
+        out.iloc[0] = float(prev.iloc[-1])
+    if out.isna().any():
+        raise ValueError(f"reference rate missing on {out.index[out.isna()][0].date()}")
+    out.name = "fed_funds"
+    out.attrs.update(source="FRED DFF via reference/DFF.csv" if rate_series is None else "caller",
+                     convention="value dated on or before the previous row (known before the day)")
+    return out
+
+
+def accrual(index):
+    a = data_io.accrual_fraction(index)
+    a.name = "accrual"
+    return a
+
+
+def fee_accrual(index, expense_pct):
+    a = accrual(index)
+    if isinstance(expense_pct, pd.Series):
+        e = expense_pct.reindex(index)
+        if e.isna().any():
+            raise ValueError(f"expense ratio missing on {e.index[e.isna()][0].date()}")
+    else:
+        e = pd.Series(float(expense_pct), index=index)
+    return (e / 100.0) * a

@@ -1,0 +1,397 @@
+{
+  "asof": "2026-09-30",
+  "run_date_utc": "2026-10-22",
+  "schema_version": 1,
+  "funds": 21,
+  "cutoff": "2026-10-21T23:59:59Z",
+  "inputs": [
+    {
+      "kind": "quotes",
+      "path": "2026-10-21/quotes_2026-10-21.json",
+      "sha256": "85cdb7dc41b6c570efcdf71aac13485ad8620cc5534982e55d29d7af1c31274c"
+    },
+    {
+      "kind": "rate",
+      "path": "reference/DFF.csv",
+      "sha256": "a93504210b53532fda653a7ee8d543b00b1780c83f2131e35bb94827a973c2df"
+    },
+    {
+      "kind": "reference",
+      "path": "SP_SPX_close.csv",
+      "sha256": "60bc78f64cffdd364393d555cdd1a37cd524c0c14a89cd6065f435c5605e0f21"
+    },
+    {
+      "kind": "register",
+      "path": "bar_fixes.csv",
+      "sha256": "6e8f56b0c50f1324946d3503f8278d8ec87c20c9e02d42a5a45a35ff4c95bb6b"
+    },
+    {
+      "kind": "register",
+      "path": "events.csv",
+      "sha256": "8addda83be26c0ee7ca2cbaa836e5a75820320129cb40d407c9496b69192dafa"
+    },
+    {
+      "kind": "register",
+      "path": "expense_timeline.csv",
+      "sha256": "cfebf4fe2d62e3594fe7b1f1c504dbc7a39ae00bced557327fea5f5684d89e07"
+    },
+    {
+      "kind": "register",
+      "path": "funds.csv",
+      "sha256": "bf0900bc81ee88412e005395157d39b3ca57741cbab2de76e51e81f933d5e344"
+    },
+    {
+      "kind": "register",
+      "path": "leverage_timeline.csv",
+      "sha256": "e5bf0c2277bb61d0de88154aad9aee196f0c04d9f7dfc8c7b9d21f7ac6165d3f"
+    },
+    {
+      "kind": "register",
+      "path": "stocks.csv",
+      "sha256": "9d88a0ee7f70dd4e25434f78183a446de6ef067316e67e9f17e5507c59ae8684"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/CBOE_ASTX_1D_2026-10-21.json",
+      "sha256": "2f8080df6abde2d87556a8a23564525906abd74d7cd56e2f866499e24e134969"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/CBOE_MSTU_1D_2026-10-21.json",
+      "sha256": "84a244aaf253bfc690c98c8467415ff5d2114f6353a8403059d79a2df919d4c5"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/CBOE_NVDX_1D_2026-10-21.json",
+      "sha256": "6afa0a883c9b39cb6464a877d165cdd5b78e4005ab141942c5334d1d7562bf3f"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/CBOE_TSLT_1D_2026-10-21.json",
+      "sha256": "cd9aebdbdf8908e6afdc8ebb6cd285d3d0fac26afd549178480caeb6c2ffa24f"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AAPB_1D_2026-10-21.json",
+      "sha256": "488e466f5d5f5430dbd44ce13d2bbf24d7028e348d26ffb7d6a5c1077b0ad611"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AAPL_1D_2026-10-21.json",
+      "sha256": "42fcff935973acb2276528454e380ca1a2b5dee38653d607733ba0bb7604e211"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AAPU_1D_2026-10-21.json",
+      "sha256": "da4cd5ef44d35f6f36efe0396a867070b450b3dae7eb03d97fb392f03bf1015e"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AMDL_1D_2026-10-21.json",
+      "sha256": "27825bf9f27ab86ab485ae250e20e90a45d8bed3a87f8fcb08658fc7f3c699f4"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AMD_1D_2026-10-21.json",
+      "sha256": "2f900fbf6921f81f63202878e22464e1fec86046d2322a6275eaca804c7a71dc"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AMZN_1D_2026-10-21.json",
+      "sha256": "16c3f217b498d50ae6f53510d9defc17e627951c1351c5edaa842ff8833f7837"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_AMZU_1D_2026-10-21.json",
+      "sha256": "559049db34ae71fb72d1a5192d19c6866a71bd302de171c20ef24cd4516eab8c"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_ASTS_1D_2026-10-21.json",
+      "sha256": "ad0f6dfe1e3c78e94f85a77c684f2b39b25e0f63f8535498955070ce543e8777"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_COIN_1D_2026-10-21.json",
+      "sha256": "fce0092dc2fbbc891ad94991fc0f9b09c9e279af86584c11e5b89d97e51a4b57"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_CONL_1D_2026-10-21.json",
+      "sha256": "1ff03a6b1b438323972695a02e4e1b22bce3360028658942b17d839cff3b6353"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_GGLL_1D_2026-10-21.json",
+      "sha256": "e303e5c1b5ae613b921d0d06b560d99e9cc3e8a65867f524440fe96ee38b7091"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_GOOGL_1D_2026-10-21.json",
+      "sha256": "6c907d488eb177fa2cb9cea2e3f4ece0e5075847d76d57fdb0e902cdf7f9cd47"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_META_1D_2026-10-21.json",
+      "sha256": "66cb2406cafd18e1b51c38c64c603b4e2e6339aa2e6fb1476bcb73f8b52851a0"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_METU_1D_2026-10-21.json",
+      "sha256": "239870a91f8d6710455595ed1681dd3259c8f1c82e27f6e1c5d460a6c83b63a7"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_MSFT_1D_2026-10-21.json",
+      "sha256": "1bd5d5ba38441e0983e5aad78a65c9bff498c8b39497637bec7afbf397dd3cee"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_MSFU_1D_2026-10-21.json",
+      "sha256": "8cc8919cb7729b0b9bca4c3e548272644f889db639537b6c06c9733029d996bc"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_MSTR_1D_2026-10-21.json",
+      "sha256": "af5b7a18c20899cb6f48b63ab6eacc8e6045340c89fd6975271ef48c4a25424a"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_MSTX_1D_2026-10-21.json",
+      "sha256": "2f9ded42f7f7a75568350fa7274fb33067bd12e1aad8e6829b5d9e1142b1f1aa"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_NVDA_1D_2026-10-21.json",
+      "sha256": "762d5e5682056a7636df0357085ebb4c646d2ec177e3a755fa385d0c08726820"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_NVDG_1D_2026-10-21.json",
+      "sha256": "011953520b82dabda46f96c3f4c078145aa1d74f2fc9286c92b913a1958c7d48"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_NVDL_1D_2026-10-21.json",
+      "sha256": "2b62faa29b4ca19e5005b45b7394922df028ec7193da357bc3d86a841e58ec89"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_NVDU_1D_2026-10-21.json",
+      "sha256": "7b23fd838ca80daa028002a8259fd189f8d71a99d64059018a354040516db44c"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_PLTR_1D_2026-10-21.json",
+      "sha256": "a1fcea32d040aca9f05df6da0a0c686c6e51b730d9e8f22c0720b85983956c24"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_PLTU_1D_2026-10-21.json",
+      "sha256": "9f1a0631a13a936c5538940c50cb268e86d4bbf7ec005aab8b81ff1d796a5d79"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_PTIR_1D_2026-10-21.json",
+      "sha256": "fb6b62f1753f8dd7a1b3096a922c7b48b08fa0c116d562d90fbd0376a4cfcbec"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_SMCI_1D_2026-10-21.json",
+      "sha256": "8ea21b0cee609c9b425dc20eb129b92135d36b2198e15699aa48d777038b97a0"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_SMCX_1D_2026-10-21.json",
+      "sha256": "133b9f1919c644e19b1987b96dc25b3b6536892f1c0d85566914d1b77fb3bd64"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_TSLA_1D_2026-10-21.json",
+      "sha256": "497900024fd55e4245f45e7ae358a561cddced64f170361ca51637e0d897efc7"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_TSLG_1D_2026-10-21.json",
+      "sha256": "a6131ad802db1fffb99c366efd916c78db353231dfb83cb8c2c1a3a0e25440be"
+    },
+    {
+      "kind": "tradingview",
+      "path": "2026-10-21/NASDAQ_TSLL_1D_2026-10-21.json",
+      "sha256": "2c3623b927ea0800c79f738192f5132c75c8b5eefd43853cf2ead44a38b0c809"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AAPB.json",
+      "sha256": "21e424999336865acfd41c6cbfeae7247ef7bf9141fa6757d6a699f660683db2"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AAPL.json",
+      "sha256": "6f89239ba87edf9026356f2e5addc6dc42ec2af3e6039ca064ab9f290f762f76"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AAPU.json",
+      "sha256": "2e2d84a91f2a81a3766cf417aa72154399f8fa111901eeb706122ebab016b801"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AMD.json",
+      "sha256": "71f10a7f292baf8b6f7585ae8ece0c23fce26a281dac2a99f22bb487e2019474"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AMDL.json",
+      "sha256": "4a532224af2bff5f9f0caa5f41cc2130747c4a1348d775c2c858e3ac1f51f16b"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AMZN.json",
+      "sha256": "da6e83b9682f2283c3b5050daeb3c3f9ee3599ee20c629e3e1b42ee2b6cc9097"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/AMZU.json",
+      "sha256": "0e4f428830c26934063c24bf71d57cc70cd74a8daca5cec3d5463ab47feb53ef"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/ASTS.json",
+      "sha256": "c54f0ba5077d9bb6885e50c30a23a9c6a129423aa31dcc8c1fbcc3fed573e616"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/ASTX.json",
+      "sha256": "ab567a576fe5a2cf1c70ba8a44029de422a93d5e44ba79a4388c14ce0d670d6e"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/COIN.json",
+      "sha256": "3c20cbed7814845a0a0c613ccbd52cb976752f56a0e549acfe955c76c6346a94"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/CONL.json",
+      "sha256": "fb1e8fa560129c6da2c98bd662d6564afe7cb9a85c7a125c62abb6a8d5e1e60e"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/GGLL.json",
+      "sha256": "7a7173a2bdcaf13524fbf0ee1e60cd93b6b33a14adffd1f48dc7d899c5fde18f"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/GOOGL.json",
+      "sha256": "21bddf9629049161671f283f3f7936d46f09d1ef843208159d2b490c1492d06f"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/META.json",
+      "sha256": "f01a128d5294c89b9f99cf184eeba71a6bbebec731e96e241ee83214c6a8e81e"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/METU.json",
+      "sha256": "ebacecd7ff753921f8144f6a6dbc951848a96ac6a861af09d3da09908cfaa0b3"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/MSFT.json",
+      "sha256": "f398dab71c3a8afb32fc209642f70d70c52d0c0df51c83abc014e3d6837a85fb"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/MSFU.json",
+      "sha256": "55e1302a5e1c1f4eeb5eae305679e4ef19697141a5827178ac74729ef7f466e6"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/MSTR.json",
+      "sha256": "e01e7f245f901f42d5ac008b1518d65935f2b8db3ba9f9ec6b9dec5346c03c01"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/MSTU.json",
+      "sha256": "52ce8038ab2c6119827175e5d475dc942396d44aa880b599fd3c378a00a83876"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/MSTX.json",
+      "sha256": "c0fa6f226db22b9c73fb5fffa0d97df2c46010221d6acd46f4ec184ecffc7135"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/NVDA.json",
+      "sha256": "da1a84a4a599f9db5eb728a291a6e757e63c01364d73d8aae5dc5aee3675d68f"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/NVDG.json",
+      "sha256": "6b8f21b25b8f8f54e08d0e7a5e4182a6d6337b0bfdd23a6615fc289710685b16"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/NVDL.json",
+      "sha256": "b42573a8dac6fe422bd21b3acdda82aca338b2f1fe63dc8633f3f3046fd239a9"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/NVDU.json",
+      "sha256": "23fed40ce715743537ea80da0ed8849684a2f01249aed744bab147c96a92622a"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/NVDX.json",
+      "sha256": "990d4f749829e37a3a3224c809c4b1a0ec5b64ca32f5e1c26b657845b17b3f08"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/PLTR.json",
+      "sha256": "432629012d19a20b65a49dc7cadf0bbb4b2e85909e2b079d69a75f5fc0dac811"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/PLTU.json",
+      "sha256": "3c68a97a77c0db69706dc4dedb095a05b9d7d578b3370f0d586576af473f3f70"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/PTIR.json",
+      "sha256": "dfce1855dc725809bd979c42a11e654bc9882a7d29b366edd37db556315cd6e1"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/SMCI.json",
+      "sha256": "652f71a68b53a2e7e2f1f6f855f12d9c61272d30f659371cb362b76e9731f6ee"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/SMCX.json",
+      "sha256": "147846aea5825e99fdace9f953c765faabe10be3a2320303499fbb62c8955d1f"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/TSLA.json",
+      "sha256": "2af92603c63af6d70f7ab377eb9df468a028387ee097c219bb6df53331e80eb9"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/TSLG.json",
+      "sha256": "1f5e6efee91422c4fc19562a6f60b6ec0ff0b823e621c45484ae7da554fe2a1b"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/TSLL.json",
+      "sha256": "1024f2c2c22d92f546c0f1db021ce6ac6c23ff28849102cf6d54538e9ff9c4cd"
+    },
+    {
+      "kind": "yahoo",
+      "path": "2026-10-21/TSLT.json",
+      "sha256": "aadcdd2fd3ce9ecaa6d72302aade022f794f792758ac8cdc94b60cfcf325c17f"
+    }
+  ],
+  "inputs_sha256": "37b15089997c651b36d3a9199f234b8fda539810b83124e81b8922f9d9055c1b",
+  "ledger_sha256": "4432c20d5cb4d6aef615e1e76f03ff047eeedad10fef3183f9969231342eddf7",
+  "windows_sha256": "f183f79ec1c954d87b84898e7e5049c6c840782be5729ae6b45ef8bcb28a1509"
+}

@@ -1,0 +1,8 @@
+# Store every text file with LF line endings, whatever the checkout platform does.
+* text=auto eol=lf
+*.csv text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.pdf binary
+*.png binary
