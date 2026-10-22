@@ -2,6 +2,11 @@
 
 This project uses semantic versioning. Features raise the minor version; fixes raise the patch version.
 
+## Unreleased
+
+- `tests/test_scan_identifiers.py`: a public clone has no private term list, so the test now runs the generic
+  checks without it instead of a failure. The public clone's test suite ends at 0 failures.
+
 ## 0.1.0 (2026-10-22)
 
 The first public release: the pilot of 21 funds, the engine, the tests, the frozen hypotheses and the first ledger

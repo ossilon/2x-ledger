@@ -53,8 +53,10 @@ with tempfile.TemporaryDirectory() as tmp:
     check("the scan finds a home path, an email and a pasted series in one file",
           "home directory path" in kinds and "email address" in kinds and "daily series" in kinds, probs)
 
-# the repository itself: the gate every commit must pass
+# the repository itself: the gate every commit must pass. The private term list exists only on the author's machine;
+# a public clone runs the generic checks (paths, emails, secrets, clock times, data files, spellings) without it.
 personal = si.personal_terms()
-check("identifiers_local.txt exists on this machine (the private list the scan needs)", personal is not None)
+if personal is None:
+    print("     identifiers_local.txt absent (a public clone): personal-term check skipped, generic checks run")
 problems = si.scan(personal=personal or [])
 check("the files git would publish carry no identifier, secret, clock time or data file", problems == [], "\n".join(problems[:15]))
