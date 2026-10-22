@@ -114,7 +114,7 @@ row set (as of 2026-09-30). The steps below built it.
 - `scripts/make_pins.py` and `tests/test_pins.py`: private real-data pins (rounded to 6 decimals) recomputed for
   three funds. A new pin needs an explicit flag.
 
-### S2 audit fixes (independent audit on Opus 5.5; findings 1-9 closed)
+### S2 audit fixes (independent audit; findings 1-9 closed)
 
 - Calendar-year and trailing windows now start at the last session before the window. So the first session's
   return belongs to the window (TSLL 2023: 139.7 percent, not 194.3).

@@ -34,6 +34,8 @@ GENERIC = {
     "home directory path": re.compile(r"[A-Za-z]:\\{1,2}Users\\{1,2}[^\\\s]+|/home/[a-z0-9_-]+|/Users/[A-Za-z0-9_-]+"),
     "email address": re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
     "possible secret": re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*['\"][^'\"]{8,}"),
+    # public text credits "an independent audit", never the model or vendor that performed it (project rule)
+    "named AI model or vendor": re.compile(r"(?i)\b(astra|gpt-?\d?|openai|chatgpt|anthropic|claude|gemini|opus|sonnet|copilot)\b"),
     "British spelling": re.compile(r"(?i)\b\w*(behaviour|licence|organis|recognis|summaris|centre|neighbour|favour"
                                    r"|colour|programme|labell|modell|cancell|catalogue|whilst|towards|realis|vectoris"
                                    r"|itemis|minimis|maximis|optimis|prioritis|parallelis|annualis|normalis|winsoris"
@@ -253,6 +255,8 @@ def scan(files=None, personal=(), handle=None, url=None):
             for name, rx in GENERIC.items():
                 if name == "British spelling" and rel in ("scripts/scan_identifiers.py", "scripts/ste_check.py", "tests/test_ste_check.py"):
                     continue                                   # these files list the spellings they look for
+                if name == "named AI model or vendor" and rel == "scripts/scan_identifiers.py":
+                    continue                                   # this file lists the names it looks for
                 for m in rx.finditer(line):
                     if name == "email address" and m.group(0).lower() in ALLOWED_EMAILS:
                         continue
