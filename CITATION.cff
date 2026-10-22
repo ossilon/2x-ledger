@@ -5,8 +5,8 @@ type: software
 version: 0.1.0
 date-released: 2026-10-22
 license: MIT
-repository-code: "https://github.com/ossilon/twox-ledger"
-url: "https://github.com/ossilon/twox-ledger"
+repository-code: "https://github.com/ossilon/2x-ledger"
+url: "https://github.com/ossilon/2x-ledger"
 authors:
   - name: "ossilon"
 abstract: >-

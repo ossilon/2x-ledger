@@ -145,6 +145,6 @@ The pilot covers 21 funds on 13 stocks from six issuers. The full census with cl
 
 ## Cite
 
-> ossilon (2026). 2x Single-Stock ETF Ledger, version 0.1.0. https://github.com/ossilon/twox-ledger
+> ossilon (2026). 2x Single-Stock ETF Ledger, version 0.1.0. https://github.com/ossilon/2x-ledger
 
 License: MIT. See `CITATION.cff`.
