@@ -18,7 +18,7 @@ Each technical term has one meaning in this repository. The ledger columns use t
 | Fed funds | The effective federal funds rate, the overnight rate between US banks (FRED series DFF). |
 | Turn | One times the fund's own value. A 2x fund holds two turns of stock and borrows one turn. |
 | Residual | The fund's return minus L2's return. A negative residual is a cost. |
-| All-in cost | Minus the residual, as a yearly rate in log terms. The cost of the product beyond fed funds. |
+| All-in cost | Minus the residual, as a yearly rate in log terms. The cost of the product beyond fed funds. It holds the expense ratio, the swap spread above fed funds, trading costs, missed targets and any change in the market premium between the first and last close. It equals Bessembinder's "frictional cost" with the sign reversed. |
 | Compounding effect | L1's return minus two times the stock's return. The effect of the daily reset on multi-day returns. |
 | Financing effect | L2's return minus L1's return. The cost of the borrowed turn at fed funds. |
 | Rebalancing effect | L2's return minus B's return. What the daily reset adds or costs against a hold with the same borrowing. |
