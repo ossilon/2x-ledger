@@ -19,7 +19,14 @@ from issuer_capture import published_at, spec, weekdays_back
 SOURCE = "tradr"
 BASE = "https://axsetf.filepoint.live/assets/data/"
 NEEDS_FUNDS = False
-FORMATS = {"NSDEAXS2": [("v1", b'"30 Day Effective Yield"')], "ICE": [("v1", b"Trade Date,Symbol")], "BBH": [("v1", b"ETF Ticker,Date")]}
+FORMATS = {"NSDEAXS2": [("v1", b'"30 Day Effective Yield"')], "ICE": [("v1", b"Trade Date,Symbol")], "BBH": [("v1", b"ETF Ticker,Date")],
+           # the performance file came XML-wrapped in the browser (2026-10-23) and as a plain CSV to the script (2026-10-24)
+           "PERFORMANCE": [("v1", b"<CONFLUENCE_TRANSFORMER>"), ("v2", b"Ticker,CUSIP,NAV,Market")]}
+
+
+def performance_ok(body):
+    head = body.lstrip(b"\xef\xbb\xbf")
+    return any(head.startswith(prefix) for _, prefix in FORMATS["PERFORMANCE"])
 EOD_HOUR_UTC = 23          # accounting and holdings files were on the host by 22:20 and 22:53 UTC (2026-10-22)
 ICE_HOUR_UTC = 8           # the ICE price file appeared at 06:41 UTC the next day
 
@@ -34,7 +41,7 @@ def plan(ctx):
     out.append(spec("Tradr_Exposure_History.csv", BASE + "Tradr_Exposure_History.csv", b"DATE,", "monthly", "history"))
     out.append(spec("AXS_PREMIUM_DISCOUNT.CSV", BASE + "AXS_PREMIUM_DISCOUNT.CSV", None, "monthly", "history"))
     out.append(spec("AXS_Dividend_History.csv", BASE + "AXS_Dividend_History.csv", b"Fund,Year", "monthly", "history"))
-    out.append(spec("AXS_ETF_Performance.csv", BASE + "AXS_ETF_Performance.csv", b"<CONFLUENCE_TRANSFORMER>", "monthly", "history"))
+    out.append(spec("AXS_ETF_Performance.csv", BASE + "AXS_ETF_Performance.csv", None, "monthly", "history", valid=performance_ok))
     return out
 
 
